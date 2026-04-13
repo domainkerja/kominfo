@@ -1,0 +1,5 @@
+{
+  "name": "Generator Surat Tugas Jember",
+  "description": "Aplikasi sederhana untuk membuat Surat Tugas (Perseorangan & Kolektif) sesuai template Dinas Komunikasi dan Informatika Kabupaten Jember.",
+  "requestFramePermissions": []
+}
