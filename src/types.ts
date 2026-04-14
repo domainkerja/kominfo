@@ -29,3 +29,9 @@ export interface Signatory {
   nip: string;
   jabatan: string;
 }
+
+export interface LetterHistory {
+  id: string;
+  timestamp: number;
+  formData: string; // JSON stringified LetterData
+}

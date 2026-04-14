@@ -22,6 +22,13 @@ service cloud.firestore {
     //   - jabatan: string (required, size < 200)
     //   - createdAt: number (optional)
     //
+    // Collection: users/{userId}/history
+    // Document ID: {historyId}
+    // Fields:
+    //   - id: string (required, size < 100)
+    //   - timestamp: number (required)
+    //   - formData: string (required, size < 1000000)
+    //
     // ===============================================================
 
     // ===============================================================
@@ -57,6 +64,13 @@ service cloud.firestore {
              request.resource.data.jabatan is string && request.resource.data.jabatan.size() < 200;
     }
 
+    function isValidHistory() {
+      return request.resource.data.keys().hasAll(['id', 'timestamp', 'formData']) &&
+             request.resource.data.id is string && request.resource.data.id.size() < 100 &&
+             request.resource.data.timestamp is number &&
+             request.resource.data.formData is string && request.resource.data.formData.size() < 1000000;
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -70,6 +84,12 @@ service cloud.firestore {
       match /employees/{employeeId} {
         allow read: if isOwner(userId);
         allow create, update: if isOwner(userId) && isValidEmployee();
+        allow delete: if isOwner(userId);
+      }
+
+      match /history/{historyId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidHistory();
         allow delete: if isOwner(userId);
       }
     }

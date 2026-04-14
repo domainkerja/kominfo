@@ -5,13 +5,13 @@ import { id } from "date-fns/locale";
 import DatePicker, { registerLocale } from "react-datepicker";
 import * as XLSX from "xlsx";
 import { motion, AnimatePresence } from "motion/react";
-import { Employee, LetterData } from "./types";
+import { Employee, LetterData, LetterHistory } from "./types";
 import { DEFAULT_EMPLOYEES } from "./constants";
 import { generateSuratTugas } from "./lib/generateDoc";
 import { generateSuratTugasPDF } from "./lib/generatePdf";
 import { auth, db } from "./firebase";
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User } from "firebase/auth";
-import { collection, doc, onSnapshot, setDoc, deleteDoc, getDoc } from "firebase/firestore";
+import { collection, doc, onSnapshot, setDoc, deleteDoc, getDoc, query, orderBy } from "firebase/firestore";
 
 registerLocale("id", id);
 
@@ -69,8 +69,10 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const [activeTab, setActiveTab] = useState<"form" | "history">("form");
 
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [history, setHistory] = useState<LetterHistory[]>([]);
   const [todayStr] = useState(format(new Date(), "yyyy-MM-dd"));
 
   const [formData, setFormData] = useState<LetterData>({
@@ -115,6 +117,18 @@ export default function App() {
       handleFirestoreError(error, OperationType.LIST, employeesPath);
     });
 
+    const historyPath = `users/${user.uid}/history`;
+    const q = query(collection(db, historyPath), orderBy("timestamp", "desc"));
+    const unsubscribeHistory = onSnapshot(q, (snapshot) => {
+      const hist: LetterHistory[] = [];
+      snapshot.forEach((doc) => {
+        hist.push(doc.data() as LetterHistory);
+      });
+      setHistory(hist);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, historyPath);
+    });
+
     const settingsPath = `users/${user.uid}/settings/general`;
     const unsubscribeSettings = onSnapshot(doc(db, settingsPath), (docSnap) => {
       if (docSnap.exists()) {
@@ -131,6 +145,7 @@ export default function App() {
 
     return () => {
       unsubscribeEmployees();
+      unsubscribeHistory();
       unsubscribeSettings();
     };
   }, [user, isAuthReady]);
@@ -198,12 +213,29 @@ export default function App() {
     });
   };
 
+  const saveHistory = async () => {
+    if (!user) return;
+    const historyId = crypto.randomUUID();
+    const historyItem: LetterHistory = {
+      id: historyId,
+      timestamp: Date.now(),
+      formData: JSON.stringify(formData),
+    };
+    const path = `users/${user.uid}/history/${historyId}`;
+    try {
+      await setDoc(doc(db, path), historyItem);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, path);
+    }
+  };
+
   const handleGenerate = async () => {
     if (formData.selectedEmployeeIds.length === 0) {
       alert("Pilih setidaknya satu pegawai!");
       return;
     }
     await generateSuratTugas(formData, employees);
+    await saveHistory();
   };
 
   const handleGeneratePDF = async () => {
@@ -212,6 +244,7 @@ export default function App() {
       return;
     }
     await generateSuratTugasPDF(formData, employees);
+    await saveHistory();
   };
 
   const downloadTemplate = () => {
@@ -440,10 +473,35 @@ export default function App() {
           </div>
         </motion.header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
-          {/* Form Section */}
-          <div className="lg:col-span-8 space-y-6 md:space-y-8">
-            <motion.section 
+        {/* Tab Switcher */}
+        <div className="flex gap-2 mb-6 bg-white p-2 rounded-xl shadow-sm border border-slate-200 w-full md:w-fit mx-auto md:mx-0">
+          <button
+            onClick={() => setActiveTab("form")}
+            className={`flex-1 md:flex-none px-6 py-2.5 rounded-lg font-semibold text-sm transition-all ${
+              activeTab === "form"
+                ? "bg-primary-900 text-white shadow-md shadow-primary-900/20"
+                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+            }`}
+          >
+            Buat Surat
+          </button>
+          <button
+            onClick={() => setActiveTab("history")}
+            className={`flex-1 md:flex-none px-6 py-2.5 rounded-lg font-semibold text-sm transition-all ${
+              activeTab === "history"
+                ? "bg-primary-900 text-white shadow-md shadow-primary-900/20"
+                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+            }`}
+          >
+            History Cetak
+          </button>
+        </div>
+
+        {activeTab === "form" ? (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
+            {/* Form Section */}
+            <div className="lg:col-span-8 space-y-6 md:space-y-8">
+              <motion.section 
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
@@ -822,6 +880,85 @@ export default function App() {
             </motion.div>
           </div>
         </div>
+        ) : (
+          <div className="bg-white p-5 md:p-8 rounded-xl shadow-sm border border-slate-200">
+            <div className="flex items-center justify-between mb-6 md:mb-8">
+              <h2 className="text-base md:text-lg font-bold text-slate-900 flex items-center gap-3 uppercase">
+                <div className="p-2 bg-primary-50 rounded-lg">
+                  <Clock size={18} className="text-primary-700" />
+                </div>
+                HISTORY CETAK
+              </h2>
+            </div>
+            
+            {history.length === 0 ? (
+              <div className="text-center py-12 text-slate-500">
+                <Clock size={48} className="mx-auto mb-4 text-slate-300" />
+                <p>Belum ada history cetak surat.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {history.map((item) => {
+                  let data: LetterData;
+                  try {
+                    data = JSON.parse(item.formData);
+                  } catch (e) {
+                    return null;
+                  }
+                  
+                  return (
+                    <div key={item.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 border border-slate-100 rounded-xl hover:border-primary-200 transition-colors gap-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-bold text-primary-600 bg-primary-50 px-2 py-0.5 rounded-md">
+                            {format(new Date(item.timestamp), "dd MMM yyyy HH:mm", { locale: id })}
+                          </span>
+                          <span className="text-sm font-semibold text-slate-900">
+                            {data.nomor || "Tanpa Nomor"}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 line-clamp-1">
+                          Untuk: {data.untuk}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1">
+                          {data.selectedEmployeeIds.length} Pegawai
+                        </p>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setFormData(data);
+                            setActiveTab("form");
+                          }}
+                          className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-primary-50 text-primary-700 hover:bg-primary-100 rounded-lg text-xs font-bold transition-colors"
+                        >
+                          <Edit2 size={14} />
+                          Edit & Cetak Ulang
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (window.confirm("Hapus history ini?")) {
+                              try {
+                                await deleteDoc(doc(db, `users/${user!.uid}/history/${item.id}`));
+                              } catch (error) {
+                                handleFirestoreError(error, OperationType.DELETE, `users/${user!.uid}/history/${item.id}`);
+                              }
+                            }
+                          }}
+                          className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Hapus History"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <style>{`

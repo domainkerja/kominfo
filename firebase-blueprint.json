@@ -46,6 +46,26 @@
         }
       },
       "required": ["id", "name", "nip", "pangkatGol", "jabatan"]
+    },
+    "LetterHistory": {
+      "title": "LetterHistory",
+      "description": "History of generated letters",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier"
+        },
+        "timestamp": {
+          "type": "number",
+          "description": "Generation timestamp"
+        },
+        "formData": {
+          "type": "string",
+          "description": "JSON stringified LetterData"
+        }
+      },
+      "required": ["id", "timestamp", "formData"]
     }
   },
   "firestore": {
@@ -60,6 +80,12 @@
         "$ref": "#/entities/Employee"
       },
       "description": "Employees belonging to the user"
+    },
+    "/users/{userId}/history/{historyId}": {
+      "schema": {
+        "$ref": "#/entities/LetterHistory"
+      },
+      "description": "History of generated letters for the user"
     }
   }
 }
