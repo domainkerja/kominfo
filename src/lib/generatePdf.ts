@@ -35,36 +35,36 @@ export async function generateSuratTugasPDF(
     if (data.logoBase64) {
       try {
         const format = data.logoBase64.includes("image/jpeg") || data.logoBase64.includes("image/jpg") ? "JPEG" : "PNG";
-        pageDoc.addImage(data.logoBase64, format, 12.7, currentY, 20, 25);
+        pageDoc.addImage(data.logoBase64, format, 12.7, currentY, 18, 22);
       } catch (e) {
         console.error("Failed to add logo to PDF", e);
       }
     }
 
     pageDoc.setFont("helvetica", "normal");
-    pageDoc.setFontSize(12);
-    pageDoc.text(KOP_SURAT.pemda, 105, currentY + 5, { align: "center" });
+    pageDoc.setFontSize(13);
+    pageDoc.text(KOP_SURAT.pemda, 105, currentY + 4, { align: "center" });
     
     pageDoc.setFont("helvetica", "bold");
-    pageDoc.setFontSize(14);
-    pageDoc.text(KOP_SURAT.dinas, 105, currentY + 12, { align: "center" });
+    pageDoc.setFontSize(15);
+    pageDoc.text(KOP_SURAT.dinas, 105, currentY + 10, { align: "center" });
     
     pageDoc.setFont("helvetica", "normal");
-    pageDoc.setFontSize(10);
-    pageDoc.text(KOP_SURAT.alamat, 105, currentY + 18, { align: "center" });
-    pageDoc.text(KOP_SURAT.kontak, 105, currentY + 23, { align: "center" });
+    pageDoc.setFontSize(11);
+    pageDoc.text(KOP_SURAT.alamat, 105, currentY + 15, { align: "center" });
+    pageDoc.text(KOP_SURAT.kontak, 105, currentY + 19, { align: "center" });
 
     // Line
     pageDoc.setLineWidth(0.5);
-    pageDoc.line(12.7, currentY + 28, 197.3, currentY + 28);
+    pageDoc.line(12.7, currentY + 23, 197.3, currentY + 23);
     pageDoc.setLineWidth(0.2);
-    pageDoc.line(12.7, currentY + 29, 197.3, currentY + 29);
+    pageDoc.line(12.7, currentY + 24, 197.3, currentY + 24);
 
-    currentY += 40;
+    currentY += 34;
 
     // Judul
     pageDoc.setFont("helvetica", "bold");
-    pageDoc.setFontSize(12);
+    pageDoc.setFontSize(13);
     pageDoc.text("SURAT TUGAS", 105, currentY, { align: "center" });
     pageDoc.setLineWidth(0.3);
     const titleWidth = pageDoc.getTextWidth("SURAT TUGAS");
@@ -72,7 +72,7 @@ export async function generateSuratTugasPDF(
     
     currentY += 7;
     pageDoc.setFont("helvetica", "normal");
-    pageDoc.setFontSize(11);
+    pageDoc.setFontSize(12);
     pageDoc.text(`Nomor: ${data.nomor}`, 105, currentY, { align: "center" });
 
     currentY += 15;
@@ -174,7 +174,7 @@ export async function generateSuratTugasPDF(
     pageDoc.text("#", 140, currentY, { align: "center" });
 
     // Footer
-    pageDoc.setFontSize(7);
+    pageDoc.setFontSize(8);
     pageDoc.setFont("helvetica", "italic");
     
     const tteIcon = data.tteIconBase64 || "data:image/png;base64," + TTE_ICON_BASE64;
@@ -194,7 +194,7 @@ export async function generateSuratTugasPDF(
     doc.addPage("a4", "l");
     let currentY = 12.7;
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
+    doc.setFontSize(12);
     
     const lampiranX = 200; 
     const colonX = 218;
@@ -228,6 +228,7 @@ export async function generateSuratTugasPDF(
       ]),
       theme: 'grid',
       showHead: 'everyPage',
+      styles: { fontSize: 12 },
       headStyles: {
         fillColor: [255, 255, 255],
         textColor: [0, 0, 0],
@@ -246,10 +247,10 @@ export async function generateSuratTugasPDF(
         cellPadding: 3
       },
       columnStyles: {
-        0: { halign: 'center', cellWidth: 10 },
+        0: { halign: 'center', cellWidth: 13 },
         1: { cellWidth: 'auto' },
-        2: { halign: 'center', cellWidth: 45 },
-        3: { halign: 'center', cellWidth: 40 },
+        2: { halign: 'center', cellWidth: 50 },
+        3: { halign: 'center', cellWidth: 55 },
         4: { cellWidth: 'auto' }
       },
       margin: { left: 12.7, right: 12.7 }
@@ -258,7 +259,7 @@ export async function generateSuratTugasPDF(
     // Get the Y position after the table
     currentY = (doc as any).lastAutoTable.finalY + 10;
 
-    doc.setFontSize(7);
+    doc.setFontSize(8);
     doc.setFont("helvetica", "italic");
     
     const tteIcon = data.tteIconBase64 || "data:image/png;base64," + TTE_ICON_BASE64;
